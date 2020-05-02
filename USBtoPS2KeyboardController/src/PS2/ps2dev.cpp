@@ -231,11 +231,9 @@ void PS2dev::keyboard_init()
   write(0xA8);
   while(write(0xAA)!=0)
   {
-    write(0xAE);
-    write(0xA8);
-    delay(10);
+    delay(50);
   }
-  delay(10);
+  delay(50);
   return;
 }
 

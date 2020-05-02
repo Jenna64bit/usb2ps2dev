@@ -160,6 +160,7 @@ void keyReleased() {
 // Default Arduino initialization function
 void setup()
 {
+  delay(500);
   SerialDebug.begin(115200);
   while (!SerialDebug); // Wait for serial port to connect
   SerialDebug.println("Keyboard Controller Program started");

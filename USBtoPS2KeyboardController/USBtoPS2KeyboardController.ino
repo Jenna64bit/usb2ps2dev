@@ -26,7 +26,7 @@ PS2dev PS2keyboard(3, 2); //clock, data
 USBHost usb;
 // Attach keyboard controller to USB
 KeyboardController USBkeyboard(usb);
-
+q
 
 // for just lower case this seems simplistic
 // but eventually I'll handle a lot more here (special, modifiers, etc)
@@ -88,8 +88,78 @@ unsigned char GetCode(char usb_sym) {
       return 0x5a;
     case 0x20: // space
       return 0x29;
-    default:
+    case '1':
+      return 0x16;
+    case '2':
+      return 0x1e;
+    case '3':
+      return 0x26;
+    case '4':
+      return 0x25;
+    case '5':
+      return 0x2e;
+    case '6':
+      return 0x36;
+    case '7':
+      return 0x3d;
+    case '8':
+      return 0x3e;
+    case '9':
+      return 0x46;
+    case '0':
+      return 0x45;
+    case '-':
+      return 0x4e;
+    case '=':
+      return 0x55;
+    case ';':
+      return 0x4c;
+    case '\'':
+      return 0x52;
+    case ',':
+      return 0x41;
+    case '.':
       return 0x49;
+  }
+}
+
+void modKeys() {
+  // handle modifier keys like shift
+  uint8_t getModifiers = USBkeyboard.getModifiers();
+  // left
+  if (getModifiers && 2) { // lshift
+    PS2keyboard.keyboard_press(0x12);
+  }
+  if (getModifiers && 4) { // lalt
+    PS2keyboard.keyboard_press(0x11);
+  }
+  if (getModifiers && 1) { // lctrl
+    PS2keyboard.keyboard_press(0x14);
+  }
+  if (getModifiers && 8) { // lmod
+    PS2keyboard.keyboard_press(0xE01F);
+  }
+  // right
+  if (getModifiers && 32) { // rshift
+    PS2keyboard.keyboard_press(0x59);
+  }
+  //  RELEASE UNPRESSED MODIFIERS
+  // left
+  if (! getModifiers && 2) { // lshift
+    PS2keyboard.keyboard_release(0x12);
+  }
+  if (! getModifiers && 4) {
+    PS2keyboard.keyboard_release(0x11);
+  }
+  if (! getModifiers && 1) {
+    PS2keyboard.keyboard_release(0x14);
+  }
+  if (! getModifiers && 8) {
+    PS2keyboard.keyboard_release(0xE01F);
+  }
+  // right
+  if (! getModifiers && 32) { // rshift
+    PS2keyboard.keyboard_release(0x59);
   }
 }
 
@@ -97,21 +167,7 @@ unsigned char GetCode(char usb_sym) {
 // This function intercepts key press
 // There's no 'hold' handling just yet
 void keyPressed() {
-  // handle modifier keys like shift
-  uint8_t getModifiers = USBkeyboard.getModifiers();
-  if (getModifiers && 2) { // Left shift
-    PS2keyboard.keyboard_press(0x12);
-  }
-  if (getModifiers && 32) { // Right shift
-    PS2keyboard.keyboard_press(0x59);
-  }
-  //  uint8_t getModifiers = USBkeyboard.getModifiers();
-  if (! getModifiers && 2) { // Left shift
-    PS2keyboard.keyboard_release(0x12);
-  }
-  if (! getModifiers && 32) { // Right shift
-    PS2keyboard.keyboard_release(0x59);
-  }
+  modKeys();
 
   //get lower of pressed key
   char keyPress = USBkeyboard.getKey();
@@ -128,22 +184,7 @@ void keyPressed() {
 
 // This function intercepts key release
 void keyReleased() {
-  // handle modifier keys like shift
-  uint8_t getModifiers = USBkeyboard.getModifiers();
-  if (getModifiers && 2) { // Left shift
-    PS2keyboard.keyboard_press(0x12);
-  }
-  if (getModifiers && 32) { // Right shift
-    PS2keyboard.keyboard_press(0x59);
-  }
-  //  uint8_t getModifiers = USBkeyboard.getModifiers();
-  if (! getModifiers && 2) { // Left shift
-    PS2keyboard.keyboard_release(0x12);
-  }
-  if (! getModifiers && 32) { // Right shift
-    PS2keyboard.keyboard_release(0x59);
-  }
-
+  modKeys();
   //get lower of released key
   char keyPress = USBkeyboard.getKey();
   if (isupper(keyPress))

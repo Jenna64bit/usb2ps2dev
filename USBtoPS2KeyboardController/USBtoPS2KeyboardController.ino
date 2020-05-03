@@ -26,7 +26,7 @@ PS2dev PS2keyboard(3, 2); //clock, data
 USBHost usb;
 // Attach keyboard controller to USB
 KeyboardController USBkeyboard(usb);
-q
+
 
 // for just lower case this seems simplistic
 // but eventually I'll handle a lot more here (special, modifiers, etc)

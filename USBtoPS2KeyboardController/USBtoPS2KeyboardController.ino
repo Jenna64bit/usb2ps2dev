@@ -84,7 +84,7 @@ unsigned char GetCode(char usb_sym) {
       return 0x35;
     case 'z':
       return 0x1a;
-    case 0x0d: // enter
+    case 0x0d: // carriage return
       return 0x5a;
     case 0x20: // space
       return 0x29;
@@ -115,51 +115,86 @@ unsigned char GetCode(char usb_sym) {
     case ';':
       return 0x4c;
     case '\'':
-      return 0x52;
+      return 0x5D;
+    case '/':
+      return 0xE04A;
     case ',':
       return 0x41;
     case '.':
       return 0x49;
+    case '!':
+      return 0x16;
+    case '@':
+      return 0x1e;
+    case '#':
+      return 0x26;
+    case '$':
+      return 0x25;
+    case '%':
+      return 0x2e;
+    case '^':
+      return 0x36;
+    case '&':
+      return 0x3d;
+    case '*':
+      return 0x3e;
+    case '(':
+      return 0x46;
+    case ')':
+      return 0x45;
+    case '|':
+      return 0x5d;
+    case '[':
+      return 0x54;
+    case ']':
+      return 0x5b;
+    case '{':
+      return 0x54;
+    case '}':
+      return 0x5b;
+    case 0x08: // backspace
+      return 0x66;
+    case 0x7f: // delete
+      return 0xe071;
+    case 0x09: // tab
+      return 0x0d;
+    case 0x1b: // esc
+      return 0x76;
+    case 81: // down arrow
+      return 0x60;
+    case 80: //l arrow
+      return 0x61;
+    case 82: // u arrow
+      return 0x63;
+    case 79: // r arrow
+      return 0x6a;
+    default:
+      return 0x49; // if we don't know just put in a period so something registers
   }
 }
 
 void modKeys() {
   // handle modifier keys like shift
   uint8_t getModifiers = USBkeyboard.getModifiers();
-  // left
-  if (getModifiers && 2) { // lshift
+  SerialDebug.println(getModifiers);
+  if (getModifiers & 2) { // Left shift
     PS2keyboard.keyboard_press(0x12);
   }
-  if (getModifiers && 4) { // lalt
-    PS2keyboard.keyboard_press(0x11);
-  }
-  if (getModifiers && 1) { // lctrl
-    PS2keyboard.keyboard_press(0x14);
-  }
-  if (getModifiers && 8) { // lmod
-    PS2keyboard.keyboard_press(0xE01F);
-  }
-  // right
-  if (getModifiers && 32) { // rshift
+  if (getModifiers & 32) { // Right shift
     PS2keyboard.keyboard_press(0x59);
   }
-  //  RELEASE UNPRESSED MODIFIERS
-  // left
-  if (! getModifiers && 2) { // lshift
+  if (getModifiers & 1) { // left ctrl
+    PS2keyboard.keyboard_press(0x14);
+  }
+  //  uint8_t getModifiers = USBkeyboard.getModifiers();
+  if (!(getModifiers & 2)) { // Left shift
     PS2keyboard.keyboard_release(0x12);
   }
-  if (! getModifiers && 4) {
-    PS2keyboard.keyboard_release(0x11);
-  }
-  if (! getModifiers && 1) {
-    PS2keyboard.keyboard_release(0x14);
-  }
-  if (! getModifiers && 8) {
-    PS2keyboard.keyboard_release(0xE01F);
-  }
-  // right
-  if (! getModifiers && 32) { // rshift
+  if (!(getModifiers & 32)) { // Right shift
     PS2keyboard.keyboard_release(0x59);
+  }
+  if (!(getModifiers & 1)) { // left ctrl
+    PS2keyboard.keyboard_release(0x14);
   }
 }
 
@@ -167,34 +202,38 @@ void modKeys() {
 // This function intercepts key press
 // There's no 'hold' handling just yet
 void keyPressed() {
+  // handle modifiers (eg shift)
   modKeys();
 
   //get lower of pressed key
   char keyPress = USBkeyboard.getKey();
+  SerialDebug.println(keyPress);
+  SerialDebug.println(USBkeyboard.getOemKey());
   if (isupper(keyPress))
     keyPress = tolower(keyPress);
 
   // grab correct ps2 hex
   unsigned char letter = GetCode(keyPress);
   if ( (digitalRead(3) == HIGH) || (digitalRead(2) == HIGH)) {
-    //PS2keyboard.keyboard_press(letter); // attempt conversion
-    PS2keyboard.keyboard_mkbrk(letter); // attempt conversion
+    PS2keyboard.keyboard_press(letter); // attempt conversion
   }
 }
 
 // This function intercepts key release
 void keyReleased() {
-  modKeys();
   //get lower of released key
   char keyPress = USBkeyboard.getKey();
   if (isupper(keyPress))
     keyPress = tolower(keyPress);
 
-  // grab correct ps2 hex
-  //  unsigned char letter = GetCode(keyPress);
-  //  if ( (digitalRead(3) == HIGH) || (digitalRead(2) == HIGH)) {
-  //    PS2keyboard.keyboard_release(letter); // attempt conversion
-  //  }
+  //  grab correct ps2 hex
+  unsigned char letter = GetCode(keyPress);
+  if ( (digitalRead(3) == HIGH) || (digitalRead(2) == HIGH)) {
+    PS2keyboard.keyboard_release(letter); // attempt conversion
+  }
+
+  // handle modifiers
+  modKeys();
 }
 
 
@@ -222,15 +261,15 @@ void loop()
   usb.Task();
   uint32_t currentUSBstate = usb.getUsbTaskState();
   lastUSBstate = currentUSBstate;
-
   // Handle PS2 communication and react to keyboard led change
   // This should be done at least once each 10ms
   unsigned char leds;
+  while(PS2keyboard.keyboard_handle(&leds)!=0);
   // user for lock indicators 0 - scroll / 1 - num / 2- caps
-  if (PS2keyboard.keyboard_handle(&leds)) {
-    // kbdLockingKeys.kbdLeds.bmNumLock = ~kbdLockingKeys.kbdLeds.bmNumLock;
-    // kbdLockingKeys.kbdLeds.bmCapsLock = ~kbdLockingKeys.kbdLeds.bmCapsLock;
-    // kbdLockingKeys.kbdLeds.bmScrollLock = ~kbdLockingKeys.kbdLeds.bmScrollLock;
-    digitalWrite(LED_BUILTIN, leds);
-  }
+//  if (PS2keyboard.keyboard_handle(&leds)) {
+//    // kbdLockingKeys.kbdLeds.bmNumLock = ~kbdLockingKeys.kbdLeds.bmNumLock;
+//    // kbdLockingKeys.kbdLeds.bmCapsLock = ~kbdLockingKeys.kbdLeds.bmCapsLock;
+//    // kbdLockingKeys.kbdLeds.bmScrollLock = ~kbdLockingKeys.kbdLeds.bmScrollLock;
+//    digitalWrite(LED_BUILTIN, leds);
+//  }
 }

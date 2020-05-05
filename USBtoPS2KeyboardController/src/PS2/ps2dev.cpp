@@ -227,9 +227,19 @@ int PS2dev::read(unsigned char * value)
 
 void PS2dev::keyboard_init()
 {
-  write(0xAE);
-  write(0xA8);
+  // try to connect
+  int res = write(0xAA);
+  unsigned char leds;
+  while(res == -2) { // host wants clock pulse, "handle" it
+    read(&leds);
+    res = write(0xAA);
+  }
+  // connect
   while(write(0xAA)!=0);
+  keyboard_handle(&leds);
+  // enable keyboard
+  write(0xAE);
+  keyboard_handle(&leds);
   return;
 }
 
@@ -273,8 +283,13 @@ int PS2dev::keyboard_reply(unsigned char cmd, unsigned char *leds)
     break;
   case 0xF2: //get device id
     ack();
-    write(0xAB);
-    write(0x83);
+    val = cmd;
+    while (val == 0xF2) {
+      write(0xAB);
+      write(0x83);
+      val = read(&val);
+    }
+    // write(0xAE);
     break;
   case 0xF0: //set scan code set
     ack();

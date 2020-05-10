@@ -13,11 +13,12 @@
 // Serial1 for the serial console. This applies to all SAMD boards except for
 // Arduino Zero and M0 boards.
 // Pins are 0 & 1 on my Sparkfun SAMD21 for Serial1, works great
-#if (USB_VID==0x2341 && defined(ARDUINO_SAMD_ZERO)) || (USB_VID==0x2a03 && defined(ARDUINO_SAM_ZERO))
-#define SerialDebug SERIAL_PORT_MONITOR
-#else
-#define SerialDebug Serial1
-#endif
+
+//#if (USB_VID==0x2341 && defined(ARDUINO_SAMD_ZERO)) || (USB_VID==0x2a03 && defined(ARDUINO_SAM_ZERO))
+//#define SerialDebug SERIAL_PORT_MONITOR
+//#else
+//#define SerialDebug Serial1
+//#endif
 
 // Initialization
 // Initialize PS2 output device
@@ -243,27 +244,62 @@ unsigned char GetCode(char usb_sym) {
 void modKeys() {
   // handle modifier keys like shift
   uint8_t getModifiers = USBkeyboard.getModifiers();
-  SerialDebug.print("Modifier mask: ");
-  SerialDebug.println(getModifiers);
+  #ifdef SerialDebug
+    SerialDebug.print("Modifier mask: ");
+    SerialDebug.println(getModifiers);
+  #endif
+
+  // pressed keys
+  if (getModifiers & 1) { // left ctrl
+    PS2keyboard.keyboard_press(0x11);
+  }
   if (getModifiers & 2) { // Left shift
     PS2keyboard.keyboard_press(0x12);
+  }
+  if (getModifiers & 4) { // (Left) Alt
+    PS2keyboard.keyboard_press(0x19);
+  }
+//  if (getModifiers & 8) { // Left CMD - not on SGI boards
+//    PS2keyboard.keyboard_press();
+//  }
+  if (getModifiers & 16) { // Right Ctrl
+    PS2keyboard.keyboard_press(0x58);
   }
   if (getModifiers & 32) { // Right shift
     PS2keyboard.keyboard_press(0x59);
   }
-  if (getModifiers & 1) { // left ctrl
-    PS2keyboard.keyboard_press(0x14);
+  if (getModifiers & 64) { // Alt Gr
+    PS2keyboard.keyboard_press(0x39);
   }
-  //  uint8_t getModifiers = USBkeyboard.getModifiers();
+//  if (getModifiers & 128) { // Right CMD - not on SGI
+//    PS2keyboard.keyboard_press();
+//  }
+
+  // released keys
+  if (!(getModifiers & 1)) { // left ctrl
+    PS2keyboard.keyboard_release(0x11);
+  }
   if (!(getModifiers & 2)) { // Left shift
     PS2keyboard.keyboard_release(0x12);
+  }
+  if (!(getModifiers & 4)) { // (Left) Alt
+    PS2keyboard.keyboard_release(0x19);
+  }
+//  if (!(getModifiers & 8)) { // Left CMD - not on SGI
+//    PS2keyboard.keyboard_release();
+//  }
+  if (!(getModifiers & 16)) { // Right Ctrl
+    PS2keyboard.keyboard_release(0x58);
   }
   if (!(getModifiers & 32)) { // Right shift
     PS2keyboard.keyboard_release(0x59);
   }
-  if (!(getModifiers & 1)) { // left ctrl
-    PS2keyboard.keyboard_release(0x14);
+  if (!(getModifiers & 64)) { // Alt Gr
+    PS2keyboard.keyboard_release(0x39);
   }
+//  if (!(getModifiers & 128)) { // Right CMD - not on SGI
+//    PS2keyboard.keyboard_release();
+//  }
 }
 
 
@@ -276,14 +312,18 @@ void keyPressed() {
   //get pressed key
   char keyPress = USBkeyboard.getOemKey();
   // what did we get?
-  SerialDebug.print("KeyPress OEM Key: ");
-  SerialDebug.println(USBkeyboard.getOemKey());
+  #ifdef SerialDebug
+    SerialDebug.print("KeyPress OEM Key: ");
+    SerialDebug.println(USBkeyboard.getOemKey());
+  #endif
 
   // grab correct ps2 hex
   unsigned char letter = GetCode(keyPress);
   // what is our translation?
-  SerialDebug.print("PS/2 Code Translation: ");
-  SerialDebug.println(letter, HEX);
+  #ifdef SerialDebug
+    SerialDebug.print("PS/2 Code Translation: ");
+    SerialDebug.println(letter, HEX);
+  #endif
   if ( (digitalRead(3) == HIGH) || (digitalRead(2) == HIGH)) {
     PS2keyboard.keyboard_press(letter); // attempt conversion
   }
@@ -309,14 +349,20 @@ void keyReleased() {
 void setup()
 {
   delay(500);
-  SerialDebug.begin(115200);
-  while (!SerialDebug); // Wait for serial port to connect
-  SerialDebug.println("Keyboard Controller Program started");
-  SerialDebug.println("Setting up USB Init.");
+  #ifdef SerialDebug
+    SerialDebug.begin(115200);
+    while (!SerialDebug); // Wait for serial port to connect
+    SerialDebug.println("Keyboard Controller Program started");
+    SerialDebug.println("Setting up USB Init.");
+  #endif
   usb.Init();
-  SerialDebug.println("USB Finished, setting up PS2 KB Init.");
+  #ifdef SerialDebug
+    SerialDebug.println("USB Finished, setting up PS2 KB Init.");
+  #endif
   PS2keyboard.keyboard_init();
-  SerialDebug.println("PS2 KB Finished beginning output.");
+  #ifdef SerialDebug
+    SerialDebug.println("PS2 KB Finished beginning output.");
+  #endif
   Serial.begin(9600); // start PS/2 output
   pinMode(LED_BUILTIN, OUTPUT);
 }
@@ -334,10 +380,4 @@ void loop()
   unsigned char leds;
   while(PS2keyboard.keyboard_handle(&leds)!=0);
   // user for lock indicators 0 - scroll / 1 - num / 2- caps
-//  if (PS2keyboard.keyboard_handle(&leds)) {
-//    // kbdLockingKeys.kbdLeds.bmNumLock = ~kbdLockingKeys.kbdLeds.bmNumLock;
-//    // kbdLockingKeys.kbdLeds.bmCapsLock = ~kbdLockingKeys.kbdLeds.bmCapsLock;
-//    // kbdLockingKeys.kbdLeds.bmScrollLock = ~kbdLockingKeys.kbdLeds.bmScrollLock;
-//    digitalWrite(LED_BUILTIN, leds);
-//  }
 }
